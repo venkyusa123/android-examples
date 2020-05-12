@@ -1,0 +1,69 @@
+pipeline {
+    agent any
+    stages{      
+        stage('Preparation') { 
+            steps {
+                git url: 'https://github.com/rahulK299/android-examples.git'
+            }
+        }
+         stage('Dependencies') {
+            steps {
+                sh 'export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64'
+                sh 'export PATH=$PATH:/usr/lib/jvm/java-1.8.0-openjdk-amd64/bin:/usr/lib/jvm/java-1.8.0-openjdk-amd64/jre/bin'
+                sh 'echo $JAVA_HOME'    
+            }
+        }    
+        stage('Clean Build') {
+            steps {
+                dir("ListView") {
+                    sh "pwd"
+                    sh 'ls -al'
+                    sh './gradlew clean'
+                }   
+            }
+        }
+        
+        stage('Sauce Testing'){
+            when {
+                branch 'java'
+            }
+            steps {
+                dir("ListView") {
+                    sauce('sauce_aceess_key') {
+                        // some block
+                    }
+                }
+            }
+        }
+        
+        stage('Debug apk creation ') {
+          when {
+                branch 'develop' 
+            }
+            steps {
+                dir("ListView") {
+                    sh "pwd"
+                    sh "./gradlew assembleDebug"
+                }
+            }
+        }
+        stage("Get Build Artifacts"){
+            when {
+                branch 'develop' 
+            }
+            steps {
+                archiveArtifacts artifacts : 'ListView/app/build/outputs/apk/debug/*.apk', fingerprint: true
+            }
+        }
+        stage("Publish debub Articats to Nexus"){
+            when {
+                branch 'develop'
+            }
+            steps {
+                emailext body: 'A Test EMail',
+                    subject: 'Test',
+                    to: '$DEFAULT_RECIPIENTS'    
+            }
+        }
+    }
+}
