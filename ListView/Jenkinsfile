@@ -47,7 +47,7 @@ pipeline {
                 }
             }
         }
-        stage("Get Build Artifacts"){
+        stage("Get Build Artifacts for debug"){
             when {
                 branch 'develop' 
             }
@@ -55,9 +55,19 @@ pipeline {
                 archiveArtifacts artifacts : 'ListView/app/build/outputs/apk/debug/*.apk', fingerprint: true
             }
         }
-        stage("Publish debub Articats to Nexus"){
+        stage('Release apk creation ') {
+          when {
+                branch 'master' 
+            }
+            steps {
+                dir("ListView") {
+                    sh "pwd"
+                }
+            }
+        }
+        stage("Send Release apk over email "){
             when {
-                branch 'develop'
+                branch 'master'
             }
             steps {
                 emailext body: 'A Test EMail',
