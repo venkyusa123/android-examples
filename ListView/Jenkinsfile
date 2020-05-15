@@ -73,7 +73,7 @@ pipeline {
                                 sh 'echo "build started by ${BUILD_USER_EMAIL}"'
                             }
                         }else {
-                            emailext attachmentsPattern: '*.apk', body: 'A Test EMail', subject: 'Test', to: userInput
+                            emailext attachmentsPattern: 'ListView/app/build/outputs/apk/debug/*.apk', body: 'A Test EMail', subject: 'Test', to: userInput
                             echo ("build started by: " + userInput ) 
                         }
                     }
