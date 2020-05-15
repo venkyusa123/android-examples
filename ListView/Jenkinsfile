@@ -69,7 +69,7 @@ pipeline {
                         echo ("Image tags: "+ userInput)
                         if ( userInput == '' ){
                             wrap([$class: 'BuildUser']) {
-                                emailext body: 'A Test EMail', subject: 'Test', to: '${BUILD_USER_EMAIL}' 
+                                emailext body: 'A Test EMail', subject: 'Test', to: "${BUILD_USER_EMAIL}" 
                                 sh 'echo "build started by ${BUILD_USER_EMAIL}"'
                             }
                         }else {
