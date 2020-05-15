@@ -1,11 +1,6 @@
 pipeline {
     agent any
     stages{      
-        stage('Preparation') { 
-            steps {
-                git url: 'https://github.com/rahulK299/android-examples.git'
-            }
-        }
          stage('Dependencies') {
             steps {
                 sh 'export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64'
@@ -47,12 +42,42 @@ pipeline {
                 }
             }
         }
-        stage("Get Build Artifacts for debug"){
+        stage("Send Debug apk over email"){
             when {
                 branch 'develop' 
             }
             steps {
-                archiveArtifacts artifacts : 'ListView/app/build/outputs/apk/debug/*.apk', fingerprint: true
+                script {
+                    archiveArtifacts artifacts : 'ListView/app/build/outputs/apk/debug/*.apk', fingerprint: true
+                    def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
+                    if (!isStartedByUser) {
+                        sh 'echo "build started by git commit"'
+                        emailext body: 'A Test EMail', subject: 'Test', to: 'default@gmail.com'
+                    }else {
+                        // Get the input
+                        def userInput = input( 
+                            id: 'userInput',
+                            message: 'Enter email',
+                            parameters: [
+                                [
+                                    $class: 'StringParameterDefinition',
+                                    defaultValue: '',
+                                    description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
+                                    name: 'UserEmail']
+                                ]
+                            )
+                        echo ("Image tags: "+ userInput)
+                        if ( userInput == '' ){
+                            wrap([$class: 'BuildUser']) {
+                                emailext body: 'A Test EMail', subject: 'Test', to: '${BUILD_USER_EMAIL}' 
+                                sh 'echo "build started by ${BUILD_USER_EMAIL}"'
+                            }
+                        }else {
+                            emailext attachmentsPattern: '*.apk', body: 'A Test EMail', subject: 'Test', to: userInput
+                            echo ("build started by: " + userInput ) 
+                        }
+                    }
+                }
             }
         }
         stage('Release apk creation ') {
