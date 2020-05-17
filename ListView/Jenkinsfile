@@ -48,7 +48,7 @@ pipeline {
             }
             steps {
                 script {
-                    archiveArtifacts artifacts : 'ListView/app/build/outputs/apk/debug/*.apk', fingerprint: true
+                    sh("aws s3 cp .ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
                     if (!isStartedByUser) {
                         sh 'echo "build started by git commit"'
@@ -73,7 +73,9 @@ pipeline {
                                 sh 'echo "build started by ${BUILD_USER_EMAIL}"'
                             }
                         }else {
-                            emailext attachmentsPattern: 'ListView/app/build/outputs/apk/debug/*.apk', body: 'A Test EMail', subject: 'Test', to: userInput
+                            emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: <https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk|Download>',
+                                subject: 'Release apk "${BUILD_NUMBER}"',
+                                to: userInput
                             echo ("build started by: " + userInput ) 
                         }
                     }
@@ -87,6 +89,7 @@ pipeline {
             steps {
                 dir("ListView") {
                     sh "pwd"
+                    sh("./gradlew :app:assembleRelease")
                 }
             }
         }
@@ -94,10 +97,38 @@ pipeline {
             when {
                 branch 'master'
             }
-            steps {
-                emailext body: 'A Test EMail',
-                    subject: 'Test',
-                    to: '$DEFAULT_RECIPIENTS'    
+            steps { 
+                script {
+                    sh("aws s3 cp .ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release.apk")
+                    def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
+                    if (!isStartedByUser) {
+                        sh 'echo "build started by git commit"'
+                        emailext body: 'A Test EMail', subject: 'Test', to: 'default@gmail.com'
+                    }else {
+                        // Get the input
+                        def userInput = input( 
+                            id: 'userInput',
+                            message: 'Enter email',
+                            parameters: [
+                                [
+                                    $class: 'StringParameterDefinition',
+                                    defaultValue: '',
+                                    description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
+                                    name: 'UserEmail']
+                                ]
+                            )
+                        echo ("Image tags: "+ userInput)
+                        if ( userInput == '' ){
+                            wrap([$class: 'BuildUser']) {
+                                emailext body: 'A Test EMail', subject: 'Test', to: "${BUILD_USER_EMAIL}" 
+                                sh 'echo "build started by ${BUILD_USER_EMAIL}"'
+                            }
+                        }else {
+                            emailext body: 'A Test EMail', subject: 'Test', to: userInput
+                            echo ("build started by: " + userInput ) 
+                        }
+                    }
+                }
             }
         }
     }
