@@ -72,7 +72,7 @@ pipeline {
             }
             steps {
                 script {
-                    sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/${BUILD_NUMBER}/release/app-release.apk")
+                    sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release-unsigned.apk s3://test-andoroid-code-copy/${BUILD_NUMBER}/release/app-release-unsigned.apk	")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
                     startEmailProcess(isStartedByUser, 'release')
                 }
@@ -132,7 +132,7 @@ def getUserInput() {
 
 def sendEmail(def userEmail, def buildType) {
     if (buildType == 'release') {
-        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Release Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/${BUILD_NUMBER}/release/app-release.apk',
+        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Release Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/${BUILD_NUMBER}/release/app-release-unsigned.apk	',
             subject: 'Release apk "${BUILD_NUMBER}"',
             to: userEmail
 
