@@ -48,7 +48,7 @@ pipeline {
             }
             steps {
                 script {
-                    sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
+                    sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/${BUILD_NUMBER}/debug/app-debug.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
                     // Start the email Process
                     startEmailProcess(isStartedByUser, 'debug')
@@ -72,7 +72,7 @@ pipeline {
             }
             steps {
                 script {
-                    sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release.apk")
+                    sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/${BUILD_NUMBER}/release/app-release.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
                     startEmailProcess(isStartedByUser, 'release')
                 }
@@ -132,13 +132,13 @@ def getUserInput() {
 
 def sendEmail(def userEmail, def buildType) {
     if (buildType == 'release') {
-        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Release Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/release/${BUILD_NUMBER}/app-release.apk',
+        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Release Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/${BUILD_NUMBER}/release/app-release.apk',
             subject: 'Release apk "${BUILD_NUMBER}"',
             to: userEmail
 
     }
     if (buildType == 'debug') {
-        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk',
+        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/${BUILD_NUMBER}/debug/app-debug.apk',
             subject: 'Release apk "${BUILD_NUMBER}"',
             to: userEmail
     }
