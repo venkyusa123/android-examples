@@ -50,6 +50,7 @@ pipeline {
                 script {
                     sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
+					// Start the email Process
 					startEmailProcess(isStartedByUser)
                 }
             }
