@@ -48,24 +48,14 @@ pipeline {
             }
             steps {
                 script {
-                    sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
+                    sh("aws s3 cp .ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
                     if (!isStartedByUser) {
                         sh 'echo "build started by git commit"'
                         emailext body: 'A Test EMail', subject: 'Test', to: 'default@gmail.com'
                     }else {
                         // Get the input
-                        def userInput = input( 
-                            id: 'userInput',
-                            message: 'Enter email',
-                            parameters: [
-                                [
-                                    $class: 'StringParameterDefinition',
-                                    defaultValue: '',
-                                    description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
-                                    name: 'UserEmail']
-                                ]
-                            )
+                        def userInput = getUserInput()
                         echo ("Image tags: "+ userInput)
                         if ( userInput == '' ){
                             wrap([$class: 'BuildUser']) {
@@ -99,7 +89,7 @@ pipeline {
             }
             steps { 
                 script {
-                    sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release.apk")
+                    sh("aws s3 cp .ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
                     if (!isStartedByUser) {
                         sh 'echo "build started by git commit"'
@@ -131,5 +121,31 @@ pipeline {
                 }
             }
         }
+		stage('Send release APK to Slack') {
+            steps {
+                slackSend (
+                    channel: '',
+                    tokenCredentialId: 'slack-token',
+                    baseUrl: '',
+                    teamDomain: '',
+                    message: ""
+                )
+            }
+        }
     }
+}
+
+def getUserInput(){
+	def userInput = input( 
+			id: 'userInput',
+			message: 'Enter email',
+			parameters: 
+				[
+					[$class: 'StringParameterDefinition',
+                    defaultValue: '',
+                    description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
+                    name: 'UserEmail']
+                ]
+			)
+	return userInput
 }
