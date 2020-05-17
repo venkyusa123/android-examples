@@ -83,6 +83,7 @@ pipeline {
                 branch 'master'
             }
             steps {
+                sh "pwd"
                 //slackSend(
                 //    channel: '',
                 //    tokenCredentialId: 'slack-token',
