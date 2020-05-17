@@ -48,7 +48,7 @@ pipeline {
             }
             steps {
                 script {
-                    sh("aws s3 cp .ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
+                    sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
                     if (!isStartedByUser) {
                         sh 'echo "build started by git commit"'
@@ -89,7 +89,7 @@ pipeline {
             }
             steps { 
                 script {
-                    sh("aws s3 cp .ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release.apk")
+                    sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
                     if (!isStartedByUser) {
                         sh 'echo "build started by git commit"'
