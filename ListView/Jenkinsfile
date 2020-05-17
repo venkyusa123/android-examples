@@ -51,7 +51,7 @@ pipeline {
                     sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
 					// Start the email Process
-					startEmailProcess(isStartedByUser)
+					startEmailProcess(isStartedByUser, 'debug')
                 }
             }
         }
@@ -74,23 +74,7 @@ pipeline {
                 script {
                     sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
-                    if (!isStartedByUser) {
-                        sh 'echo "build started by git commit"'
-                        emailext body: 'A Test EMail', subject: 'Test', to: 'default@gmail.com'
-                    }else {
-                        // Get the input
-                        def userInput = getUserInput()
-                        echo ("User Email: "+ userInput)
-                        if ( userInput == '' ){
-                            wrap([$class: 'BuildUser']) {
-                                emailext body: 'A Test EMail', subject: 'Test', to: "${BUILD_USER_EMAIL}" 
-                                sh 'echo "build started by ${BUILD_USER_EMAIL}"'
-                            }
-                        }else {
-                            emailext body: 'A Test EMail', subject: 'Test', to: userInput
-                            echo ("build started by: " + userInput ) 
-                        }
-                    }
+                    startEmailProcess(isStartedByUser, 'release')
                 }
             }
         }
@@ -111,23 +95,21 @@ pipeline {
     }
 }
 
-def startEmailProcess(def isStartedByUser) {
+def startEmailProcess(def isStartedByUser, def buildType) {
 	if (!isStartedByUser) {
     	sh 'echo "build started by git commit"'
-        emailext body: 'A Test EMail', subject: 'Test', to: 'default@gmail.com'
+        sendEmail('default@gmail.com', buildType)
     }else {
     	// Get the input
         def userInput = getUserInput()
         echo ("User Email: "+ userInput)
        	if ( userInput == '' ){
         	wrap([$class: 'BuildUser']) {
-            	emailext body: 'A Test EMail', subject: 'Test', to: "${BUILD_USER_EMAIL}" 
+            	sendEmail("${BUILD_USER_EMAIL}", buildType) 
                 sh 'echo "build started by ${BUILD_USER_EMAIL}"'
             }
       	}else {
-        	emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: <https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk|Download>',
-                     subject: 'Release apk "${BUILD_NUMBER}"',
-                     to: userInput
+			sendEmail(userInput, buildType)
           	echo ("build started by: " + userInput ) 
   		}
 	}
@@ -146,4 +128,18 @@ def getUserInput(){
             		]
 				)
 	return userInput
+}
+
+def sendEmail(def userEmail, def buildType) {
+	if (buildType == 'release') {
+		emailext 	body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Release Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/release/${BUILD_NUMBER}/app-release.apk',
+        			subject: 'Release apk "${BUILD_NUMBER}"',
+                	to: userEmail
+
+	}
+	if (buildType == 'debub') {
+		emailext 	body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk',
+        			subject: 'Release apk "${BUILD_NUMBER}"',
+                	to: userEmail
+	}
 }
