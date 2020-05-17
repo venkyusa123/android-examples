@@ -17,20 +17,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Sauce Testing') {
-            when {
-                branch 'java'
-            }
-            steps {
-                dir("ListView") {
-                    sauce('sauce_aceess_key') {
-                        // some block
-                    }
-                }
-            }
-        }
-
         stage('Debug apk creation ') {
             when {
                 branch 'develop'
@@ -39,6 +25,18 @@ pipeline {
                 dir("ListView") {
                     sh "pwd"
                     sh "./gradlew assembleDebug"
+                }
+            }
+        }
+        stage('Sauce Testing') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                dir("ListView") {
+                    withCredentials([usernamePassword(credentialsId: 'sauce_aceess_key', passwordVariable: 'SAUCE_ACCESS_KEY', usernameVariable: 'SAUCE_USERNAME')]) {
+                         sh("curl -u \"${SAUCE_USERNAME}:${SAUCE_ACCESS_KEY}\" -X POST https://app.testobject.com:443/api/storage/upload -H \"Content-Type: application/octet-stream\" --data-binary @app/build/outputs/apk/debug/app-debug.apk")
+                    }
                 }
             }
         }
