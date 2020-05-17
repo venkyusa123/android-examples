@@ -83,13 +83,13 @@ pipeline {
                 branch 'master'
             }
             steps {
-                slackSend(
-                    channel: '',
-                    tokenCredentialId: 'slack-token',
-                    baseUrl: '',
-                    teamDomain: '',
-                    message: ""
-                )
+                //slackSend(
+                //    channel: '',
+                //    tokenCredentialId: 'slack-token',
+                //    baseUrl: '',
+                //    teamDomain: '',
+                //    message: ""
+                //)
             }
         }
     }
