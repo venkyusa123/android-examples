@@ -121,8 +121,11 @@ pipeline {
                 }
             }
         }
-		stage('Send release APK to Slack') {
-            steps {
+	stage('Send release APK to Slack') {
+		when {
+			branch 'master'
+		}
+        steps {
                 slackSend (
                     channel: '',
                     tokenCredentialId: 'slack-token',
