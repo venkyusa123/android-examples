@@ -50,25 +50,7 @@ pipeline {
                 script {
                     sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
-                    if (!isStartedByUser) {
-                        sh 'echo "build started by git commit"'
-                        emailext body: 'A Test EMail', subject: 'Test', to: 'default@gmail.com'
-                    }else {
-                        // Get the input
-                        def userInput = getUserInput()
-                        echo ("Image tags: "+ userInput)
-                        if ( userInput == '' ){
-                            wrap([$class: 'BuildUser']) {
-                                emailext body: 'A Test EMail', subject: 'Test', to: "${BUILD_USER_EMAIL}" 
-                                sh 'echo "build started by ${BUILD_USER_EMAIL}"'
-                            }
-                        }else {
-                            emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: <https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk|Download>',
-                                subject: 'Release apk "${BUILD_NUMBER}"',
-                                to: userInput
-                            echo ("build started by: " + userInput ) 
-                        }
-                    }
+					startEmailProcess(isStartedByUser)
                 }
             }
         }
@@ -96,18 +78,8 @@ pipeline {
                         emailext body: 'A Test EMail', subject: 'Test', to: 'default@gmail.com'
                     }else {
                         // Get the input
-                        def userInput = input( 
-                            id: 'userInput',
-                            message: 'Enter email',
-                            parameters: [
-                                [
-                                    $class: 'StringParameterDefinition',
-                                    defaultValue: '',
-                                    description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
-                                    name: 'UserEmail']
-                                ]
-                            )
-                        echo ("Image tags: "+ userInput)
+                        def userInput = getUserInput()
+                        echo ("User Email: "+ userInput)
                         if ( userInput == '' ){
                             wrap([$class: 'BuildUser']) {
                                 emailext body: 'A Test EMail', subject: 'Test', to: "${BUILD_USER_EMAIL}" 
@@ -138,17 +110,39 @@ pipeline {
     }
 }
 
+def startEmailProcess(def isStartedByUser) {
+	if (!isStartedByUser) {
+    	sh 'echo "build started by git commit"'
+        emailext body: 'A Test EMail', subject: 'Test', to: 'default@gmail.com'
+    }else {
+    	// Get the input
+        def userInput = getUserInput()
+        echo ("User Email: "+ userInput)
+       	if ( userInput == '' ){
+        	wrap([$class: 'BuildUser']) {
+            	emailext body: 'A Test EMail', subject: 'Test', to: "${BUILD_USER_EMAIL}" 
+                sh 'echo "build started by ${BUILD_USER_EMAIL}"'
+            }
+      	}else {
+        	emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: <https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk|Download>',
+                     subject: 'Release apk "${BUILD_NUMBER}"',
+                     to: userInput
+          	echo ("build started by: " + userInput ) 
+  		}
+	}
+}
+
 def getUserInput(){
 	def userInput = input( 
-			id: 'userInput',
-			message: 'Enter email',
-			parameters: 
-				[
-					[$class: 'StringParameterDefinition',
-                    defaultValue: '',
-                    description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
-                    name: 'UserEmail']
-                ]
-			)
+				id: 'userInput',
+				message: 'Enter email',
+				parameters: 
+					[
+						[$class: 'StringParameterDefinition',
+                    		defaultValue: '',
+                    		description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
+                    		name: 'UserEmail']
+            		]
+				)
 	return userInput
 }
