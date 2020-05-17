@@ -1,145 +1,145 @@
 pipeline {
-  agent any
-  stages {
-    stage('Dependencies') {
-      steps {
-        sh 'export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64'
-        sh 'export PATH=$PATH:/usr/lib/jvm/java-1.8.0-openjdk-amd64/bin:/usr/lib/jvm/java-1.8.0-openjdk-amd64/jre/bin'
-        sh 'echo $JAVA_HOME'
-      }
-    }
-    stage('Clean Build') {
-      steps {
-        dir("ListView") {
-          sh "pwd"
-          sh 'ls -al'
-          sh './gradlew clean'
+    agent any
+    stages {
+        stage('Dependencies') {
+            steps {
+                sh 'export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64'
+                sh 'export PATH=$PATH:/usr/lib/jvm/java-1.8.0-openjdk-amd64/bin:/usr/lib/jvm/java-1.8.0-openjdk-amd64/jre/bin'
+                sh 'echo $JAVA_HOME'
+            }
         }
-      }
-    }
+        stage('Clean Build') {
+            steps {
+                dir("ListView") {
+                    sh "pwd"
+                    sh 'ls -al'
+                    sh './gradlew clean'
+                }
+            }
+        }
 
-    stage('Sauce Testing') {
-      when {
-        branch 'java'
-      }
-      steps {
-        dir("ListView") {
-          sauce('sauce_aceess_key') {
-            // some block
-          }
+        stage('Sauce Testing') {
+            when {
+                branch 'java'
+            }
+            steps {
+                dir("ListView") {
+                    sauce('sauce_aceess_key') {
+                        // some block
+                    }
+                }
+            }
         }
-      }
-    }
 
-    stage('Debug apk creation ') {
-      when {
-        branch 'develop'
-      }
-      steps {
-        dir("ListView") {
-          sh "pwd"
-          sh "./gradlew assembleDebug"
+        stage('Debug apk creation ') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                dir("ListView") {
+                    sh "pwd"
+                    sh "./gradlew assembleDebug"
+                }
+            }
         }
-      }
-    }
-    stage("Send Debug apk over email") {
-      when {
-        branch 'develop'
-      }
-      steps {
-        script {
-          sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
-          def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
-          // Start the email Process
-          startEmailProcess(isStartedByUser, 'debug')
+        stage("Send Debug apk over email") {
+            when {
+                branch 'develop'
+            }
+            steps {
+                script {
+                    sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
+                    def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
+                    // Start the email Process
+                    startEmailProcess(isStartedByUser, 'debug')
+                }
+            }
         }
-      }
-    }
-    stage('Release apk creation ') {
-      when {
-        branch 'master'
-      }
-      steps {
-        dir("ListView") {
-          sh "pwd"
-          sh("./gradlew :app:assembleRelease")
+        stage('Release apk creation ') {
+            when {
+                branch 'master'
+            }
+            steps {
+                dir("ListView") {
+                    sh "pwd"
+                    sh("./gradlew :app:assembleRelease")
+                }
+            }
         }
-      }
-    }
-    stage("Send Release apk over email ") {
-      when {
-        branch 'master'
-      }
-      steps {
-        script {
-          sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release.apk")
-          def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
-          startEmailProcess(isStartedByUser, 'release')
+        stage("Send Release apk over email ") {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release.apk")
+                    def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
+                    startEmailProcess(isStartedByUser, 'release')
+                }
+            }
         }
-      }
+        stage('Send release APK to Slack') {
+            when {
+                branch 'master'
+            }
+            steps {
+                slackSend(
+                    channel: '',
+                    tokenCredentialId: 'slack-token',
+                    baseUrl: '',
+                    teamDomain: '',
+                    message: ""
+                )
+            }
+        }
     }
-    stage('Send release APK to Slack') {
-      when {
-        branch 'master'
-      }
-      steps {
-        slackSend(
-          channel: '',
-          tokenCredentialId: 'slack-token',
-          baseUrl: '',
-          teamDomain: '',
-          message: ""
-        )
-      }
-    }
-  }
 }
 
 def startEmailProcess(def isStartedByUser, def buildType) {
-  if (!isStartedByUser) {
-    sh 'echo "build started by git commit"'
-    sendEmail('default@gmail.com', buildType)
-  } else {
-    // Get the input
-    def userInput = getUserInput()
-    echo("User Email: " + userInput)
-    if (userInput == '') {
-      wrap([$class: 'BuildUser']) {
-        sendEmail("${BUILD_USER_EMAIL}", buildType)
-        sh 'echo "build started by ${BUILD_USER_EMAIL}"'
-      }
+    if (!isStartedByUser) {
+        sh 'echo "build started by git commit"'
+        sendEmail('default@gmail.com', buildType)
     } else {
-      sendEmail(userInput, buildType)
-      echo("build started by: " + userInput)
+        // Get the input
+        def userInput = getUserInput()
+        echo("User Email: " + userInput)
+        if (userInput == '') {
+            wrap([$class: 'BuildUser']) {
+                sendEmail("${BUILD_USER_EMAIL}", buildType)
+                sh 'echo "build started by ${BUILD_USER_EMAIL}"'
+            }
+        } else {
+            sendEmail(userInput, buildType)
+            echo("build started by: " + userInput)
+        }
     }
-  }
 }
 
 def getUserInput() {
-  def userInput = input(
-    id: 'userInput',
-    message: 'Enter email',
-    parameters: [
-      [$class: 'StringParameterDefinition',
-        defaultValue: '',
-        description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
-        name: 'UserEmail'
-      ]
-    ]
-  )
-  return userInput
+    def userInput = input(
+        id: 'userInput',
+        message: 'Enter email',
+        parameters: [
+            [$class: 'StringParameterDefinition',
+                defaultValue: '',
+                description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
+                name: 'UserEmail'
+            ]
+        ]
+    )
+    return userInput
 }
 
 def sendEmail(def userEmail, def buildType) {
-  if (buildType == 'release') {
-    emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Release Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/release/${BUILD_NUMBER}/app-release.apk',
-      subject: 'Release apk "${BUILD_NUMBER}"',
-      to: userEmail
+    if (buildType == 'release') {
+        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Release Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/release/${BUILD_NUMBER}/app-release.apk',
+            subject: 'Release apk "${BUILD_NUMBER}"',
+            to: userEmail
 
-  }
-  if (buildType == 'debug') {
-    emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk',
-      subject: 'Release apk "${BUILD_NUMBER}"',
-      to: userEmail
-  }
+    }
+    if (buildType == 'debug') {
+        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk',
+            subject: 'Release apk "${BUILD_NUMBER}"',
+            to: userEmail
+    }
 }
