@@ -137,7 +137,7 @@ def sendEmail(def userEmail, def buildType) {
                 	to: userEmail
 
 	}
-	if (buildType == 'debub') {
+	if (buildType == 'debug') {
 		emailext 	body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk',
         			subject: 'Release apk "${BUILD_NUMBER}"',
                 	to: userEmail
