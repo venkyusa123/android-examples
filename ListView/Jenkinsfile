@@ -28,7 +28,7 @@ pipeline {
                 }
             }
         }
-        stage('Sauce Testing') {
+        stage('Sauce Testing for debug apk') {
             when {
                 branch 'develop'
             }
@@ -61,6 +61,18 @@ pipeline {
                 dir("ListView") {
                     sh "pwd"
                     sh("./gradlew :app:assembleRelease")
+                }
+            }
+        }
+        stage('Sauce Testing for release apk') {
+            when {
+                branch 'master'
+            }
+            steps {
+                dir("ListView") {
+                    withCredentials([usernamePassword(credentialsId: 'sauce_aceess_key', passwordVariable: 'SAUCE_ACCESS_KEY', usernameVariable: 'SAUCE_USERNAME')]) {
+                         sh("curl -u \"${SAUCE_USERNAME}:${SAUCE_ACCESS_KEY}\" -X POST https://app.testobject.com:443/api/storage/upload -H \"Content-Type: application/octet-stream\" --data-binary @app/build/outputs/apk/release/app-release-unsigned.apk")
+                    }
                 }
             }
         }
