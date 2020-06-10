@@ -189,8 +189,7 @@ This project was created by [Nishant Srivastava](https://github.com/nisrulz/nisr
 If you appreciate my work, consider [buying me](https://www.paypal.me/nisrulz/5usd) a cup of :coffee: to keep me recharged :metal: [[PayPal](https://www.paypal.me/nisrulz/5usd)]
 
 License
-=======
-
+====================================================================
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
