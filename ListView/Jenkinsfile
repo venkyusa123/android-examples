@@ -99,7 +99,7 @@ pipeline {
                 //    tokenCredentialId: 'slack-token',
                 //    baseUrl: '',
                 //    teamDomain: '',
-                //    message: ""
+                //    message: ,,,,""..,,,
                 //)
             }
         }
