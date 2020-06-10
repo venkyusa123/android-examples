@@ -191,7 +191,6 @@ If you appreciate my work, consider [buying me](https://www.paypal.me/nisrulz/5u
 License
 =======
 
-    Copyright 2016 Nishant Srivastava
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
