@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    stages {
+   stages {
         stage('Dependencies') {
             steps {
                 sh 'export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64'
@@ -10,11 +10,12 @@ pipeline {
         }
         stage('Clean Build') {
             steps {
-                dir("ListView") {
-                    sh "pwd"
+                    dir("ListView") {
+					sh "pwd"
                     sh 'ls -al'
                     sh './gradlew clean'
-                }
+				}
+
             }
         }
         stage('Debug apk creation ') {
@@ -22,21 +23,22 @@ pipeline {
                 branch 'develop'
             }
             steps {
-                dir("ListView") {
-                    sh "pwd"
+                    dir("ListView") {
+					sh "pwd"
                     sh "./gradlew assembleDebug"
-                }
+				}
             }
         }
-        stage('Sauce Testing for debug apk') {
+        stage('SauceLab debug apk') {
             when {
                 branch 'develop'
             }
+	
             steps {
-                dir("ListView") {
-                    withCredentials([usernamePassword(credentialsId: 'sauce_aceess_key', passwordVariable: 'SAUCE_ACCESS_KEY', usernameVariable: 'SAUCE_USERNAME')]) {
-                         sh("curl -u \"${SAUCE_USERNAME}:${SAUCE_ACCESS_KEY}\" -X POST https://app.testobject.com:443/api/storage/upload -H \"Content-Type: application/octet-stream\" --data-binary @app/build/outputs/apk/debug/app-debug.apk")
-                    }
+
+                    dir("ListView") {
+                         sh("curl -u \"iot_carlsbad:193C0657897B4D9C8F8811EEECBDF0FB\" -X POST https://app.testobject.com:443/api/storage/upload -H \"Content-Type: application/octet-stream\" --data-binary @app/build/outputs/apk/debug/app-debug.apk")
+
                 }
             }
         }
@@ -46,111 +48,58 @@ pipeline {
             }
             steps {
                 script {
-                    sh("aws s3 cp ./ListView/app/build/outputs/apk/debug/app-debug.apk s3://test-andoroid-code-copy/debug/${BUILD_NUMBER}/app-debug.apk")
+                    archiveArtifacts artifacts : 'ListView/app/build/outputs/apk/debug/*.apk', fingerprint: true
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
-                    // Start the email Process
-                    startEmailProcess(isStartedByUser, 'debug')
+                    if (!isStartedByUser) {
+                        sh 'echo "build started by git commit"'
+                        emailext body: 'A Test EMail', subject: 'Test', to: 'default@gmail.com'
+                    }else {
+                        // Get the input
+                        def userInput = input( 
+                            id: 'userInput',
+                            message: 'Enter email',
+                            parameters: [
+                                [
+                                    $class: 'StringParameterDefinition',
+                                    defaultValue: '',
+                                    description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
+                                    name: 'UserEmail']
+                                ]
+                            )
+                        echo ("Image tags: "+ userInput)
+                        if ( userInput == '' ){
+                            wrap([$class: 'BuildUser']) {
+                                emailext body: 'A Test EMail', subject: 'Test', to: "${BUILD_USER_EMAIL}" 
+                                sh 'echo "build started by ${BUILD_USER_EMAIL}"'
+                            }
+                        }else {
+                            emailext attachmentsPattern: 'ListView/app/build/outputs/apk/debug/*.apk', body: 'A Test EMail', subject: 'Test', to: userInput
+                            echo ("build started by: " + userInput ) 
+                        }
+                    }
                 }
-            }
         }
         stage('Release apk creation ') {
             when {
-                branch 'master'
+                branch 'production'
             }
             steps {
-                dir("ListView") {
                     sh "pwd"
                     sh("./gradlew :app:assembleRelease")
-                }
-            }
-        }
-        stage('Sauce Testing for release apk') {
-            when {
-                branch 'master'
-            }
-            steps {
-                dir("ListView") {
-                    withCredentials([usernamePassword(credentialsId: 'sauce_aceess_key', passwordVariable: 'SAUCE_ACCESS_KEY', usernameVariable: 'SAUCE_USERNAME')]) {
-                         sh("curl -u \"${SAUCE_USERNAME}:${SAUCE_ACCESS_KEY}\" -X POST https://app.testobject.com:443/api/storage/upload -H \"Content-Type: application/octet-stream\" --data-binary @app/build/outputs/apk/release/app-release-unsigned.apk")
-                    }
-                }
             }
         }
         stage("Send Release apk over email ") {
             when {
-                branch 'master'
+                branch 'production'
             }
             steps {
                 script {
-                    sh("aws s3 cp ./ListView/app/build/outputs/apk/release/app-release-unsigned.apk s3://test-andoroid-code-copy/release/${BUILD_NUMBER}/app-release-unsigned.apk	")
+                    sh("aws s3 cp ./app/build/outputs/apk/release/app-release-unsigned.apk s3://fluidra-android-builds/${BUILD_NUMBER}/release/app-release-unsigned.apk	")
                     def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
                     startEmailProcess(isStartedByUser, 'release')
                 }
             }
         }
-        stage('Send release APK to Slack') {
-            when {
-                branch 'master'
-            }
-            steps {
-                sh "pwd"
-                //slackSend(
-                //    channel: '',
-                //    tokenCredentialId: 'slack-token',
-                //    baseUrl: '',
-                //    teamDomain: '',
-                //    message: ,,,,""..,,,
-                //)
-            }
-        }
-    }
-}
 
-def startEmailProcess(def isStartedByUser, def buildType) {
-    if (!isStartedByUser) {
-        sh 'echo "build started by git commit"'
-        sendEmail('default@gmail.com', buildType)
-    } else {
-        // Get the input
-        def userInput = getUserInput()
-        echo("User Email: " + userInput)
-        if (userInput == '') {
-            wrap([$class: 'BuildUser']) {
-                sendEmail("${BUILD_USER_EMAIL}", buildType)
-                sh 'echo "build started by ${BUILD_USER_EMAIL}"'
-            }
-        } else {
-            sendEmail(userInput, buildType)
-            echo("build started by: " + userInput)
-        }
-    }
-}
-
-def getUserInput() {
-    def userInput = input(
-        id: 'userInput',
-        message: 'Enter email',
-        parameters: [
-            [$class: 'StringParameterDefinition',
-                defaultValue: '',
-                description: 'Pleae enter your email, otherwise default behavoir will be executed by script',
-                name: 'UserEmail'
-            ]
-        ]
-    )
-    return userInput
-}
-
-def sendEmail(def userEmail, def buildType) {
-    if (buildType == 'release') {
-        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Release Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/release/${BUILD_NUMBER}/app-release-unsigned.apk	',
-            subject: 'Release apk "${BUILD_NUMBER}"',
-            to: userEmail
-
-    }
-    if (buildType == 'debug') {
-        emailext body: 'Build Info: \nBranch: ${GIT_BRANCH}, \nBuild Number: ${BUILD_NUMBER} \nDownloadable Debug Link: https://test-andoroid-code-copy.s3-us-east-2.amazonaws.com/debug/${BUILD_NUMBER}/app-debug.apk',
-            subject: 'Release apk "${BUILD_NUMBER}"',
-            to: userEmail
     }
 }
